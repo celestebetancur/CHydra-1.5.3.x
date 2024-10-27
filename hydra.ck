@@ -1,5 +1,6 @@
- // This code is pretty much a collection of GLSL helper functions from multiple sources
- // plus the hydra by Olivia Jack and some other spices added by Celeste BEtancur Gutierrez
+ // This code is pretty much a collection of helper functions from multiple sources
+ // plus the hydra by Olivia Jack. WGSL version and some other spices added 
+ // by Celeste Betancur Gutierrez
  
  "
     // include chugl standard vertex shader and other uniforms used by rendering engine
@@ -202,50 +203,61 @@
 
     fn repeat(_st:vec2f, repeatX:f32, repeatY:f32, offsetX:f32, offsetY:f32) -> vec2f{
         var st = _st * vec2(repeatX, repeatY);
-        st.x += step(1., st.y % 2.0) * offsetX;
-        st.y += step(1., st.x % 2.0) * offsetY;
+        st.x += step(1., st.y - (2.0 * floor(st.y / 2.0))) * offsetX;
+        st.y += step(1., st.x - (2.0 * floor(st.x / 2.0))) * offsetY;
         return fract(st);
     }
 
     fn modulateRepeat(_st:vec2f, _c0:vec4f, repeatX:f32, repeatY:f32, offsetX:f32, offsetY:f32) -> vec2f {
         var st = _st * vec2(repeatX, repeatY);
-        st.x += step(1., st.y % 2.0) + _c0.r * offsetX;
-        st.y += step(1., st.x % 2.0) + _c0.g * offsetY;
+        st.x += step(1., st.y - (2.0 * floor(st.y / 2.0))) + _c0.r * offsetX;
+        st.y += step(1., st.x - (2.0 * floor(st.x / 2.0))) + _c0.g * offsetY;
         return fract(st);
     }
 
     fn repeatX ( _st:vec2f, reps:f32, offset:f32)->vec2f{
         var st = _st * vec2(1.0, reps);
-        st.x += step(1., st.x % 2.0) * offset;
+        st.x += step(1., st.x - (2.0 * floor(st.x / 2.0))) * offset;
         return fract(st);
     }
 
     fn modulateRepeatX( _st:vec2f, _c0:vec4f, reps:f32, offset:f32)-> vec2f{
         var st = _st * vec2(reps,1.0);
-        st.y += step(1.0, st.x % 2.0) + _c0.r * offset;
+        st.y += step(1.0, st.x - (2.0 * floor(st.x / 2.0))) + _c0.r * offset;
         return fract(st);
     }
 
     fn repeatY (_st:vec2f, reps:f32, offset:f32)->vec2f{
         var st = _st * vec2(reps, 1.0);
-        st.y += step(1., st.y % 2.0) * offset;
+        st.y += step(1., st.y - (2.0 * floor(st.y / 2.0))) * offset;
         return fract(st);
     }
 
     fn modulateRepeatY(_st:vec2f, _c0:vec4f, reps:f32, offset:f32)->vec2f{
         var st = _st * vec2(reps,1.0);
-        st.x += step(1.0, st.y % 2.0) + _c0.r * offset;
+        st.x += step(1.0, st.y - (2.0 * floor(st.y / 2.0))) + _c0.r * offset;
         return fract(st);
+    }
+
+    fn spiralKaleid(_st:vec2f, nSides:f32) -> vec2f{
+        var st = _st;
+        st -= 0.5;
+        let r = length(st);
+        var a = atan(st.y/st.x);
+        let pi = 2. * PI;
+        a = a % (pi/nSides);
+        a = abs(a-pi/nSides/2.);
+        return r*vec2(cos(a), sin(a));
     }
 
     fn kaleid(_st:vec2f, nSides:f32) -> vec2f{
         var st = _st;
         st -= 0.5;
         let r = length(st);
-        var a = atan2(st.y, st.x);
-        let pi = 2. * PI;
-        a = a % (pi/nSides);
-        a = abs(a-pi/nSides/2.);
+        var a = atan2(st.y,st.x);
+        let pi = 2. * PI; 
+        a = a - ((pi/nSides) * floor(a / (pi/nSides)));
+        a = abs(a-(pi/nSides)/2.);
         return r*vec2(cos(a), sin(a));
     }
 
@@ -254,7 +266,7 @@
         let r = length(st);
         var a = atan2(st.y, st.x);
         let pi = 2. * PI;
-        a = a % (pi/nSides);
+        a = a - ((pi/nSides) * floor(a / (pi/nSides)));
         a = abs(a-pi/nSides/2.);
         return (_c0.r+r)*vec2(cos(a), sin(a));
     }
@@ -507,7 +519,7 @@
         v_TexCoord = uv;
 
         var time = u_Time;
-
+        
         //var FragColor = textureSample(u_texture, u_sampler, uv)
         var FragColor = " => global string hydra;
 
