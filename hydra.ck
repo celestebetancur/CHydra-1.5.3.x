@@ -1,6 +1,5 @@
- // This code is pretty much a collection of helper functions from multiple sources
- // plus the hydra by Olivia Jack. WGSL version and some other spices added 
- // by Celeste Betancur Gutierrez
+ // This code is pretty much a collection of GLSL helper functions from multiple sources
+ // plus the hydra by Olivia Jack. WGSL version and some other spices added by Celeste BEtancur Gutierrez
  
  "
     // include chugl standard vertex shader and other uniforms used by rendering engine
@@ -25,16 +24,45 @@
         return t;
     }
 
-    fn sawtooth(t : f32) -> f32 {
-        return t - floor(t);
-    }
-
     fn rand(x : f32, y : f32) -> f32{
         return fract(sin(dot(vec2f(x, y) ,vec2f(12.9898,78.233))) * 43758.5453);
     }
 
-    fn permute(x : vec4f) -> vec4f{
-        return ((x*34.0)+1.0)*x % 289.0;
+    fn sawtooth(t : f32) -> f32 {
+        return t - floor(t);
+    }
+
+    fn sineIn(t : f32) -> f32 {
+        return sin((t - 1.0) * HALF_PI) + 1.0;
+    }
+
+    fn sineOut(t : f32) -> f32 {
+        return sin(t * HALF_PI);
+    }
+
+    fn sineInOut(t : f32) -> f32{
+        return -0.5 * (cos(PI * t) - 1.0);
+    }
+
+    fn qinticIn(t : f32) -> f32{
+        return pow(t, 5.0);
+    }
+
+    fn qinticOut(t : f32) -> f32{
+        return 1.0 - (pow(t - 1.0, 5.0));
+    }
+
+    fn backIn(t : f32) -> f32{
+        return pow(t, 3.0) - t * sin(t * PI);
+    }
+
+    fn backOut(t : f32) -> f32{
+        let f = 1.0 - t;
+        return 1.0 - (pow(f, 3.0) - f * sin(f * PI));
+    }
+
+    fn permute(x : vec4f) -> vec4f{ 
+        return ((x*34.0)+1.0)* (x - (289.0 * floor(x / 289.0)));
     }   
 
     fn taylorInvSqrt(r : vec4f) -> vec4f{
@@ -55,7 +83,10 @@
         return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
     }
 
-    //TODO: check this function
+    //  TODO: check this function
+    //  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+    //  this is not equivalent, GLSL clamp() to what in WGSL ???
+
     fn _hsvToRgb(c:vec3f)->vec3f{
         let K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
         let p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
@@ -78,7 +109,7 @@
         let x2 = x0 - i2 + 2.0 * C.xxx;
         let x3 = x0 - 1. + 3.0 * C.xxx;
         // Permutations
-        i = i % 289.0;
+        i = i - (289.0 * floor(i/289.0));
         let p = permute( permute( permute(
                                         i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
                                 + i.y + vec4(0.0, i1.y, i2.y, 1.0 ))
@@ -177,6 +208,7 @@
         return vec4f(vec3f(_noise(vec3f(_st*scale, offset*u_Time))), 1.0);
     }
 
+    // TODO: textures as sampler create a WGSL error
     // fn src(_st:vec2f) -> vec4f {
     //     return textureSample(u_texture, u_sampler, _st)
     // }
@@ -203,61 +235,51 @@
 
     fn repeat(_st:vec2f, repeatX:f32, repeatY:f32, offsetX:f32, offsetY:f32) -> vec2f{
         var st = _st * vec2(repeatX, repeatY);
-        st.x += step(1., st.y - (2.0 * floor(st.y / 2.0))) * offsetX;
-        st.y += step(1., st.x - (2.0 * floor(st.x / 2.0))) * offsetY;
+        st.x += step(1., (st.y - (2.0 * floor(st.y / 2.0)))) * offsetX;
+        st.y += step(1., (st.x - (2.0 * floor(st.y / 2.0)))) * offsetY;
         return fract(st);
     }
 
     fn modulateRepeat(_st:vec2f, _c0:vec4f, repeatX:f32, repeatY:f32, offsetX:f32, offsetY:f32) -> vec2f {
         var st = _st * vec2(repeatX, repeatY);
-        st.x += step(1., st.y - (2.0 * floor(st.y / 2.0))) + _c0.r * offsetX;
-        st.y += step(1., st.x - (2.0 * floor(st.x / 2.0))) + _c0.g * offsetY;
+        st.x += step(1., (st.y - (2.0 * floor(st.y / 2.0)))) + _c0.r * offsetX;
+        st.y += step(1., (st.x - (2.0 * floor(st.y / 2.0)))) + _c0.g * offsetY;
         return fract(st);
     }
 
     fn repeatX ( _st:vec2f, reps:f32, offset:f32)->vec2f{
         var st = _st * vec2(1.0, reps);
-        st.x += step(1., st.x - (2.0 * floor(st.x / 2.0))) * offset;
+        st.x += step(1., (st.x - (2.0 * floor(st.x / 2.0)))) * offset;
         return fract(st);
     }
 
     fn modulateRepeatX( _st:vec2f, _c0:vec4f, reps:f32, offset:f32)-> vec2f{
         var st = _st * vec2(reps,1.0);
-        st.y += step(1.0, st.x - (2.0 * floor(st.x / 2.0))) + _c0.r * offset;
+        st.y += step(1.0, (st.y - (2.0 * floor(st.y / 2.0)))) + _c0.r * offset;
         return fract(st);
     }
 
     fn repeatY (_st:vec2f, reps:f32, offset:f32)->vec2f{
         var st = _st * vec2(reps, 1.0);
-        st.y += step(1., st.y - (2.0 * floor(st.y / 2.0))) * offset;
+        st.y += step(1., (st.x - (2.0 * floor(st.x / 2.0)))) * offset;
         return fract(st);
     }
 
     fn modulateRepeatY(_st:vec2f, _c0:vec4f, reps:f32, offset:f32)->vec2f{
         var st = _st * vec2(reps,1.0);
-        st.x += step(1.0, st.y - (2.0 * floor(st.y / 2.0))) + _c0.r * offset;
+        st.x += step(1.0, (st.x - (2.0 * floor(st.y / 2.0)))) + _c0.r * offset;
         return fract(st);
-    }
-
-    fn spiralKaleid(_st:vec2f, nSides:f32) -> vec2f{
-        var st = _st;
-        st -= 0.5;
-        let r = length(st);
-        var a = atan(st.y/st.x);
-        let pi = 2. * PI;
-        a = a % (pi/nSides);
-        a = abs(a-pi/nSides/2.);
-        return r*vec2(cos(a), sin(a));
     }
 
     fn kaleid(_st:vec2f, nSides:f32) -> vec2f{
         var st = _st;
         st -= 0.5;
         let r = length(st);
-        var a = atan2(st.y,st.x);
-        let pi = 2. * PI; 
-        a = a - ((pi/nSides) * floor(a / (pi/nSides)));
-        a = abs(a-(pi/nSides)/2.);
+        var a = atan2(st.y, st.x);
+        let pi = 2. * PI;
+        let k = pi/nSides;
+        a = a - (k * floor(a / k));
+        a = abs(a-pi/nSides/2.);
         return r*vec2(cos(a), sin(a));
     }
 
@@ -266,7 +288,8 @@
         let r = length(st);
         var a = atan2(st.y, st.x);
         let pi = 2. * PI;
-        a = a - ((pi/nSides) * floor(a / (pi/nSides)));
+        let k = pi/nSides;
+        a = a - (k * floor(a / k));
         a = abs(a-pi/nSides/2.);
         return (_c0.r+r)*vec2(cos(a), sin(a));
     }
@@ -278,7 +301,14 @@
         return fract(_st);
     }
 
-    fn scrollX ( st:vec2f, scrollX:f32, speed:f32)->vec2f{
+    fn modulateScroll (st:vec2f, _c0:vec4f, scrollX:f32, scrollY:f32, speedX:f32, speedY:f32)->vec2f{
+  		var _st = st;
+        _st.x += _c0.r*scrollX + u_Time*speedX;
+        _st.y += _c0.r*scrollY + u_Time*speedY;
+        return fract(_st);
+    }
+
+    fn scrollX (st:vec2f, scrollX:f32, speed:f32)->vec2f{
       	var _st = st;
         _st.x += scrollX + u_Time*speed;
         return fract(_st);
@@ -517,9 +547,9 @@
     {
         var uv : vec2f = in.v_uv;
         v_TexCoord = uv;
-
+        // var texSampler = textureSample(u_texture, u_sampler, uv);
         var time = u_Time;
-        
+
         //var FragColor = textureSample(u_texture, u_sampler, uv)
         var FragColor = " => global string hydra;
 
