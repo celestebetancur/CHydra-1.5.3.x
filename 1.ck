@@ -1,14 +1,17 @@
+//  Migrate this into @import pattern
 Machine.add(me.dir() + "hydra.ck");
 me.yield();
 
+//  could this be imported too ???
 global string hydra;
 
+// Migrate this to multiple public classes - package manager 
 class ShaderType {
     string code;
     string type;
 }
 
-public class ShaderTools {     
+public class CHydra {     
 
     hydra => string header;
 
@@ -521,6 +524,41 @@ public class ShaderTools {
         return toReturn;
     }
 
+    function ShaderType modulateScroll(ShaderType src){
+        ShaderType toReturn;
+        "modulateScroll ( uv , "+src.code+" , 0.5, 0.5 , 1.0 ,1.0 )" => toReturn.code;
+        "trns" => toReturn.type;
+        return toReturn;
+    }
+
+    function ShaderType modulateScroll(ShaderType src ,float scrollX){
+        ShaderType toReturn;
+        "modulateScroll ( uv , "+src.code+" , "+Std.ftoa(scrollX,10)+", 0.5 , 1.0, 1.0 )" => toReturn.code;
+        "trns" => toReturn.type;
+        return toReturn;
+    }
+
+    function ShaderType modulateScroll(ShaderType src ,float scrollX, float scrollY){
+        ShaderType toReturn;
+        "modulateScroll ( uv , "+src.code+" , "+Std.ftoa(scrollX,10)+", "+Std.ftoa(scrollY,10)+" , 1.0, 1.0 )" => toReturn.code;
+        "trns" => toReturn.type;
+        return toReturn;
+    }
+
+    function ShaderType modulateScroll(ShaderType src ,float scrollX, float scrollY, float speedX){
+        ShaderType toReturn;
+        "modulateScroll ( uv , "+src.code+" , "+Std.ftoa(scrollX,10)+", "+Std.ftoa(scrollY,10)+" , "+Std.ftoa(speedX,10)+", 1.0 )" => toReturn.code;
+        "trns" => toReturn.type;
+        return toReturn;
+    }
+
+    function ShaderType modulateScroll(ShaderType src ,float scrollX, float scrollY, float speedX, float speedY){
+        ShaderType toReturn;
+        "modulateScroll ( uv , "+src.code+" , "+Std.ftoa(scrollX,10)+", "+Std.ftoa(scrollY,10)+" , "+Std.ftoa(speedX,10)+", "+Std.ftoa(speedY,10)+" )" => toReturn.code;
+        "trns" => toReturn.type;
+        return toReturn;
+    }
+
     function ShaderType modulateScrollX(ShaderType src){
         ShaderType toReturn;
         "modulateScrollX ( uv , "+src.code+" , 0.5 , 1.0 )" => toReturn.code;
@@ -768,14 +806,14 @@ public class ShaderTools {
 
     function ShaderType modulateHue(ShaderType src){
         ShaderType toReturn;
-        "modulateHue ( uv , "+src.code+" , 1. , 1. )" => toReturn.code;
+        "modulateHue ( uv , "+src.code+" , 1. )" => toReturn.code;
         "trns" => toReturn.type;
         return toReturn;
     }
 
     function ShaderType modulateHue(ShaderType src, float ammount){
         ShaderType toReturn;
-        "modulateHue ( uv , "+src.code+" , "+Std.ftoa(ammount,10)+ ", 1. )" => toReturn.code;
+        "modulateHue ( uv , "+src.code+" , "+Std.ftoa(ammount,10)+ ")" => toReturn.code;
         "trns" => toReturn.type;
         return toReturn;
     }
@@ -1139,62 +1177,94 @@ public class ShaderTools {
 
     //--------------------------------------
     function string shader(string code){
-        //chout <= header+code+close;
         return header+code+close;
     }
 
     function string shader(ShaderType singleObject){
-        // <<< "code:",singleObject.code >>>;
-        // shaderMat.fragShader( header+singleObject.code+close );
         return header+singleObject.code+close;
+    }
+
+    function ShaderType CodeMaker(ShaderType one, ShaderType two, string type){
+
+        StringTokenizer tokenizer;
+
+        tokenizer.set( one.code );
+
+        ShaderType toReturn;
+        type => toReturn.type;
+
+        while( tokenizer.more() )
+        {
+            tokenizer.next() => string temp;
+
+            if(type == "src"){
+                if(temp == "uv"){
+                    two.code +=> toReturn.code;
+                } else {
+                    temp +=> toReturn.code; 
+                }
+                "src" => toReturn.type;
+            }
+            if(type == "srcC"){
+                if(temp == "tx"){
+                    two.code +=> toReturn.code;
+                } else {
+                    temp +=> toReturn.code; 
+                }
+                "src" => toReturn.type;
+            }
+        }
+        
+        return toReturn;
     }
 }
 
 //----------------------------------------------------------------
-
-function ShaderType CodeMaker(ShaderType one, ShaderType two, string type){
-
-    StringTokenizer tokenizer;
-
-    tokenizer.set( one.code );
-
-    ShaderType toReturn;
-    type => toReturn.type;
-
-    while( tokenizer.more() )
-    {
-        tokenizer.next() => string temp;
-
-        if(type == "src"){
-            if(temp == "uv"){
-                two.code +=> toReturn.code;
-            } else {
-                temp +=> toReturn.code; 
-                // <<< toReturn.code >>>;
-            }
-        }
-        if(type == "srcC"){
-            if(temp == "tx"){
-                two.code +=> toReturn.code;
-                // <<< toReturn.code >>>;
-            } else {
-                temp +=> toReturn.code; 
-            }
-            
-        }
-    }
-    "src" => toReturn.type;
-    //<<< toReturn.code >>>;
-    return toReturn;
-}
+//  This section of the code will overload some operators
 
 public ShaderType @operator ->(ShaderType one ,ShaderType two){
-
+    CHydra st;
     if(one.type == "src" && two.type == "trns"){
-        return CodeMaker(one, two, "src");
+        return st.CodeMaker(one, two, "src");
     }
     if(one.type == "src" && two.type == "trnsC"){
-        return CodeMaker(two, one, "srcC");
+        return st.CodeMaker(two, one, "srcC");
+    }
+
+    return ShaderType n;
+}
+
+public ShaderType @operator +(ShaderType one ,ShaderType two){
+    CHydra st;
+    if(one.type == "src" && two.type == "src"){
+        return one->st.add(two);
+    }
+
+    return ShaderType n;
+}
+
+public ShaderType @operator -(ShaderType one ,ShaderType two){
+    CHydra st;
+    if(one.type == "src" && two.type == "src"){
+        return one->st.sub(two);
+    }
+
+    return ShaderType n;
+}
+
+public ShaderType @operator *(ShaderType one ,ShaderType two){
+    CHydra st;
+    if(one.type == "src" && two.type == "src"){
+        return one->st.mult(two);
+    }
+
+    return ShaderType n;
+}
+
+public ShaderType @operator ^(ShaderType one ,ShaderType two){
+    CHydra st;
+    if(one.type == "src" && two.type == "src"){
+        return one->st.diff(two);
     }
 
     return ShaderType n;
@@ -1202,6 +1272,8 @@ public ShaderType @operator ->(ShaderType one ,ShaderType two){
 
 // --------------------------------------------------------------------------------
 // --------------------------------------------------------------------------------
+// Basic shader compilation, it runs once using the CHydra wrapper to create WGSL code
+
 
 // turn off tonemapping
 GG.outputPass().tonemap(OutputPass.ToneMap_None);
@@ -1209,20 +1281,22 @@ GG.windowTitle( "CHydra" );
 11 => GG.camera().posZ;
 
 Material shader_material;
-GPlane plane;
-// get the default white pixel texture
+GPlane plane --> GG.scene();
+
+// get the default white pixel texture 
 (plane.mat() $ PhongMaterial).colorMap() @=> Texture white_pixel;
-plane --> GG.scene();
+
 plane.mat(shader_material);
 plane.scaX(16);
 plane.scaY(9);
 
 // set default sampler and texture
-//TextureSampler default_sampler;
-//shader_material.sampler(1, default_sampler);
-//shader_material.texture(2, white_pixel);
+TextureSampler default_sampler;
 
-ShaderTools st;
+// shader_material.sampler(1, default_sampler);
+// shader_material.texture(2, white_pixel);
+
+CHydra st;
 global string ShaderCode;
 ShaderDesc shader_desc;
 
@@ -1232,32 +1306,23 @@ fun void recompileShader() {
     processed_shader_code => shader_desc.vertexCode;
     processed_shader_code => shader_desc.fragmentCode;
 
+    // The leak is definitely here
     Shader custom_shader(shader_desc); // create shader from shader_desc
     custom_shader => shader_material.shader; // connect shader to material
-
     // chout <= processed_shader_code;
 }
 
 
 (
-
-st.osc(20,0,0)->st.modulate(st.noise())->st.sphereDisplacement(st.osc())->st.modulateRays(100,200)
-
+    st.osc()->st.modulate(st.osc(20,0.1,0.5))
 ).code => ShaderCode;
 
+// <<< ShaderCode >>>;
 recompileShader();
 
 while (true) {
     // set time
     plane.mat().uniformFloat(0, now/second);
-
-    // recompileShader();
-
     // The time is now
     GG.nextFrame() => now;
-
-    // Machine.resetShredID();
-    //Automatically replace the playground in case there is new code
-    // Machine.add(me.dir()+"/playground1.ck");
-
 }
