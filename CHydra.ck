@@ -1,24 +1,23 @@
-//  Migrate this into @import pattern
-Machine.add(me.dir() + "hydra.ck");
-me.yield();
+@import "ChuGL.chug"
+@import "Hydra.ck"
 
-//  could this be imported too ???
-global string hydra;
-
-// Migrate this to multiple public classes - package manager 
-class ShaderType {
+public class ShaderType {
     string code;
     string type;
 }
 
 public class CHydra {     
 
-    hydra => string header;
+    Hydra hydra_object;
+    hydra_object.hydra => string header;
+
+    // TODO: make this modular
+    "" => string textureInitializer;
 
     ";
     return srgbToLinear(FragColor);
     }
-    " => global string close;
+    " => string close;
 
     function ShaderType noise(){
         ShaderType toReturn;
@@ -68,10 +67,19 @@ public class CHydra {
         "src" => toReturn.type;
         return toReturn;
     }
-    //TODO: think about this
-    function ShaderType src(){
+
+    function ShaderType src(Webcam webcam){
         ShaderType toReturn;
-        "src ( uv , tex0)"=> toReturn.code;
+        if(webcam.capture()){
+            "src ( uv , u_texture)"=> toReturn.code;
+            "src" => toReturn.type;
+        }
+        return toReturn;
+    }
+
+    function ShaderType src(Video video){
+        ShaderType toReturn;
+        "src ( uv , u_textureVideo)"=> toReturn.code;
         "src" => toReturn.type;
         return toReturn;
     }
@@ -1177,11 +1185,11 @@ public class CHydra {
 
     //--------------------------------------
     function string shader(string code){
-        return header+code+close;
+        return header+code+textureInitializer+close;
     }
 
     function string shader(ShaderType singleObject){
-        return header+singleObject.code+close;
+        return header+singleObject.code+textureInitializer+close;
     }
 
     function ShaderType CodeMaker(ShaderType one, ShaderType two, string type){
@@ -1270,59 +1278,3 @@ public ShaderType @operator ^(ShaderType one ,ShaderType two){
     return ShaderType n;
 }
 
-// --------------------------------------------------------------------------------
-// --------------------------------------------------------------------------------
-// Basic shader compilation, it runs once using the CHydra wrapper to create WGSL code
-
-
-// turn off tonemapping
-GG.outputPass().tonemap(OutputPass.ToneMap_None);
-GG.windowTitle( "CHydra" );
-11 => GG.camera().posZ;
-
-Material shader_material;
-GPlane plane --> GG.scene();
-
-// get the default white pixel texture 
-(plane.mat() $ PhongMaterial).colorMap() @=> Texture white_pixel;
-
-plane.mat(shader_material);
-plane.scaX(16);
-plane.scaY(9);
-
-// set default sampler and texture
-TextureSampler default_sampler;
-
-// shader_material.sampler(1, default_sampler);
-// shader_material.texture(2, white_pixel);
-
-CHydra st;
-global string ShaderCode;
-ShaderDesc shader_desc;
-
-fun void recompileShader() {
-    st.shader(ShaderCode) @=> string processed_shader_code;
-
-    processed_shader_code => shader_desc.vertexCode;
-    processed_shader_code => shader_desc.fragmentCode;
-
-    // The leak is definitely here
-    Shader custom_shader(shader_desc); // create shader from shader_desc
-    custom_shader => shader_material.shader; // connect shader to material
-    // chout <= processed_shader_code;
-}
-
-
-(
-    st.osc()->st.modulate(st.osc(20,0.1,0.5))
-).code => ShaderCode;
-
-// <<< ShaderCode >>>;
-recompileShader();
-
-while (true) {
-    // set time
-    plane.mat().uniformFloat(0, now/second);
-    // The time is now
-    GG.nextFrame() => now;
-}

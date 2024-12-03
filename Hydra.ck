@@ -1,6 +1,7 @@
- // This code is pretty much a collection of GLSL helper functions from multiple sources
- // plus the hydra by Olivia Jack. WGSL version and some other spices added by Celeste BEtancur Gutierrez
+ // This code is pretty much a collection of GLSL helper functions collected from multiple sources
+ // plus the hydra by Olivia Jack. WGSL version and some other spices added by Celeste Betancur Gutierrez
  
+ public class Hydra {
  "
     // include chugl standard vertex shader and other uniforms used by rendering engine
     #include FRAME_UNIFORMS
@@ -9,11 +10,13 @@
     #include STANDARD_VERTEX_OUTPUT
     #include STANDARD_VERTEX_SHADER
 
+    // the time is now
     @group(1) @binding(0) var<uniform> u_Time : f32;
 
     // video stuff
     @group(1) @binding(1) var u_sampler : sampler;
     @group(1) @binding(2) var u_texture : texture_2d<f32>;
+    @group(1) @binding(3) var u_textureVideo : texture_2d<f32>;
 
     const PI = 3.141592653589793;
     const HALF_PI = 1.5707963267948966;
@@ -208,10 +211,9 @@
         return vec4f(vec3f(_noise(vec3f(_st*scale, offset*u_Time))), 1.0);
     }
 
-    // TODO: textures as sampler create a WGSL error
-    // fn src(_st:vec2f) -> vec4f {
-    //     return textureSample(u_texture, u_sampler, _st)
-    // }
+    fn src(_st:vec2f, tex:texture_2d<f32>) -> vec4f {
+        return textureSample(tex, u_sampler, _st);
+    }
 
     fn rotate( _st : vec2f, angle : f32, speed : f32) -> vec2f{
         var xy = _st - vec2f(0.5);
@@ -547,9 +549,11 @@
     {
         var uv : vec2f = in.v_uv;
         v_TexCoord = uv;
-        // var texSampler = textureSample(u_texture, u_sampler, uv);
         var time = u_Time;
+        var texSampler = textureSample(u_texture, u_sampler, uv);
+        var texSamplerVideo = textureSample(u_textureVideo, u_sampler, uv);
 
-        //var FragColor = textureSample(u_texture, u_sampler, uv)
-        var FragColor = " => global string hydra;
+        var FragColor = " 
+    => string hydra;
+}
 
